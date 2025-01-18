@@ -3,172 +3,204 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>POOKIE CLICKER</title>
+  <title>Pookie Clicker</title>
   <style>
     body {
       font-family: Arial, sans-serif;
       text-align: center;
-      margin: 0;
-      padding: 0;
-      background-color: #f0f0f0;
+      background-color: #4e2525;
+      color: #fff;
+      overflow: hidden;
     }
     .container {
       margin: 50px auto;
-      max-width: 700px;
+      max-width: 800px;
       padding: 20px;
-      background-color: white;
+      background-color: #333;
       border-radius: 10px;
-      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
     }
     .score {
       font-size: 2.5rem;
       margin-bottom: 20px;
+      color: #f5f5dc;
     }
     .image-container img {
-      width: 200px;
+      width: 500px;
       cursor: pointer;
       transition: transform 0.2s;
     }
-    .image-container img:hover {
-      transform: scale(1.1);
+    .image-container img:active {
+      transform: scale(1.2);
+    }
+    .progress-bar {
+      width: 100%;
+      background-color: #555;
+      border-radius: 5px;
+      overflow: hidden;
+      height: 20px;
+      margin-top: 20px;
+    }
+    #progressFill {
+      width: 0%;
+      height: 100%;
+      background-color: #f5f5dc;
+      transition: width 0.3s;
     }
     .upgrades {
-      margin-top: 30px;
+      display: flex;
+      justify-content: space-around;
+      margin-top: 20px;
     }
     .upgrade {
-      padding: 12px 24px;
-      margin: 10px;
-      background-color: #007BFF;
-      color: white;
-      border: none;
+      background-color: #444;
+      padding: 10px 15px;
       border-radius: 5px;
       cursor: pointer;
-      transition: background-color 0.3s, transform 0.2s;
+      transition: background-color 0.3s;
     }
-    .upgrade:disabled {
-      background-color: #999;
-      cursor: not-allowed;
+    .upgrade:hover {
+      background-color: #666;
     }
-    .upgrade:hover:enabled {
-      background-color: #0056b3;
-      transform: scale(1.05);
+    .upgrade:active {
+      background-color: #888;
+    }
+    #endScreen {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: black;
+      color: white;
+      z-index: 999;
+      justify-content: center;
+      align-items: center;
+      flex-direction: column;
+    }
+    video {
+      max-width: 90%;
+      max-height: 90%;
+      border-radius: 10px;
+      box-shadow: 0 4px 20px rgba(255, 255, 255, 0.5);
     }
   </style>
 </head>
 <body>
   <div class="container">
-    <div class="score">Score: <span id="score">0</span></div>
+    <div class="score">Pookie Score: <span id="score">0</span></div>
     <div class="image-container">
       <img id="clickableImage" src="https://media.licdn.com/dms/image/v2/D4E03AQE1uV_54TPG9w/profile-displayphoto-shrink_200_200/B4EZPWVo9nHsAY-/0/1734467818239?e=2147483647&v=beta&t=iT6B25M2vBs_mQUNhvI9Bn2BjFxgWlpk4-D2t3b9A-A" alt="Click Me">
     </div>
+    <div class="progress-bar">
+      <div id="progressFill"></div>
+    </div>
     <div class="upgrades">
-      <button id="upgradeClick" class="upgrade" disabled>Upgrade Click (Cost: 10)</button>
-      <button id="autoClicker" class="upgrade" disabled>Auto Clicker (Cost: 50)</button>
-      <button id="doublePoints" class="upgrade" disabled>Double Points (Cost: 100)</button>
+      <div class="upgrade" id="upgradeClick">Upgrade Click (+5 points/click) - Cost: 10</div>
+      <div class="upgrade" id="upgradeDoublePoints">Double Points (Double your points) - Cost: 50</div>
+      <div class="upgrade" id="autoClickerUpgrade">Auto Clicker (+1 point/second) - Cost: 15</div>
     </div>
   </div>
 
+  <div id="endScreen">
+    <h1>NEVER GONNA GIVE YOU UP POOKIE</h1>
+    <video controls autoplay>
+      <source src="https://rick.nerial.uk/video.mp4" type="video/mp4">
+      Jouw browser ondersteunt geen video.
+    </video>
+  </div>
+
   <script>
-    // Game State
     let state = {
       score: 0,
       pointsPerClick: 1,
       pointsPerSecond: 0,
-      upgrades: {
-        upgradeClick: { cost: 10, purchased: false },
-        autoClicker: { cost: 50, purchased: false },
-        doublePoints: { cost: 100, purchased: false }
-      }
+      doublePoints: false,
+      maxScore: 1000000,
+      upgrades: [
+        { name: 'Click Upgrade', points: 5, cost: 10, increment: 20, isActive: false },
+        { name: 'Double Points', points: 0, cost: 50, increment: 20, isActive: false },
+        { name: 'Auto Clicker', points: 1, cost: 15, increment: 20, isActive: false }
+      ]
     };
 
-    // DOM Elements
     const scoreElement = document.getElementById('score');
     const clickableImage = document.getElementById('clickableImage');
+    const progressFill = document.getElementById('progressFill');
+    const endScreen = document.getElementById('endScreen');
+    const upgradeButtons = document.querySelectorAll('.upgrade');
+    const autoClickerUpgradeButton = document.getElementById('autoClickerUpgrade');
     const upgradeClickButton = document.getElementById('upgradeClick');
-    const autoClickerButton = document.getElementById('autoClicker');
-    const doublePointsButton = document.getElementById('doublePoints');
+    const upgradeDoublePointsButton = document.getElementById('upgradeDoublePoints');
 
-    // Load state from localStorage
-    function loadState() {
-      const savedState = JSON.parse(localStorage.getItem('gameState'));
-      if (savedState) {
-        state = savedState;
-        updateUI();
-        startAutoClicker();
-      }
-    }
-
-    // Save state to localStorage
-    function saveState() {
-      localStorage.setItem('gameState', JSON.stringify(state));
-    }
-
-    // Update UI
     function updateUI() {
       scoreElement.textContent = state.score;
-      upgradeClickButton.textContent = `Upgrade Click (Cost: ${state.upgrades.upgradeClick.cost})`;
-      autoClickerButton.textContent = `Auto Clicker (Cost: ${state.upgrades.autoClicker.cost})`;
-      doublePointsButton.textContent = `Double Points (Cost: ${state.upgrades.doublePoints.cost})`;
+      const progress = Math.min((state.score / state.maxScore) * 100, 100);
+      progressFill.style.width = `${progress}%`;
 
-      upgradeClickButton.disabled = state.score < state.upgrades.upgradeClick.cost;
-      autoClickerButton.disabled = state.score < state.upgrades.autoClicker.cost;
-      doublePointsButton.disabled = state.score < state.upgrades.doublePoints.cost;
+      if (state.score >= state.maxScore) {
+        endGame();
+      }
+
+      upgradeButtons.forEach((button, index) => {
+        const upgrade = state.upgrades[index];
+        button.textContent = `${upgrade.name} (${upgrade.points} points/click) - Cost: ${upgrade.cost}`;
+        button.disabled = state.score < upgrade.cost;
+        button.style.backgroundColor = state.score >= upgrade.cost ? '#666' : '#444';
+      });
     }
 
-    // Handle clicking the image
     clickableImage.addEventListener('click', () => {
-      state.score += state.pointsPerClick;
+      state.score += state.pointsPerClick * (state.doublePoints ? 2 : 1);
       updateUI();
-      saveState();
     });
 
-    // Handle upgrading click
     upgradeClickButton.addEventListener('click', () => {
-      if (state.score >= state.upgrades.upgradeClick.cost) {
-        state.score -= state.upgrades.upgradeClick.cost;
-        state.pointsPerClick += 1;
-        state.upgrades.upgradeClick.cost = Math.ceil(state.upgrades.upgradeClick.cost * 1.5);
+      const upgrade = state.upgrades[0];
+      if (state.score >= upgrade.cost) {
+        state.score -= upgrade.cost;
+        state.pointsPerClick += upgrade.points;
+        upgrade.cost += upgrade.increment;
         updateUI();
-        saveState();
+      } else {
+        alert('Niet genoeg punten!');
       }
     });
 
-    // Handle auto clicker upgrade
-    autoClickerButton.addEventListener('click', () => {
-      if (state.score >= state.upgrades.autoClicker.cost) {
-        state.score -= state.upgrades.autoClicker.cost;
-        state.pointsPerSecond += 1;
-        state.upgrades.autoClicker.cost = Math.ceil(state.upgrades.autoClicker.cost * 2);
-        startAutoClicker();
+    upgradeDoublePointsButton.addEventListener('click', () => {
+      const upgrade = state.upgrades[1];
+      if (state.score >= upgrade.cost) {
+        state.score -= upgrade.cost;
+        state.doublePoints = true;
         updateUI();
-        saveState();
+      } else {
+        alert('Niet genoeg punten!');
       }
     });
 
-    // Handle double points upgrade
-    doublePointsButton.addEventListener('click', () => {
-      if (state.score >= state.upgrades.doublePoints.cost) {
-        state.score -= state.upgrades.doublePoints.cost;
-        state.pointsPerClick *= 2;
-        state.upgrades.doublePoints.cost = Math.ceil(state.upgrades.doublePoints.cost * 2.5);
+    autoClickerUpgradeButton.addEventListener('click', () => {
+      const upgrade = state.upgrades[2];
+      if (state.score >= upgrade.cost) {
+        state.score -= upgrade.cost;
+        state.pointsPerSecond += upgrade.points;
+        upgrade.cost += upgrade.increment;
         updateUI();
-        saveState();
+      } else {
+        alert('Niet genoeg punten!');
       }
     });
 
-    // Auto clicker logic
-    function startAutoClicker() {
-      if (state.pointsPerSecond > 0) {
-        setInterval(() => {
-          state.score += state.pointsPerSecond;
-          updateUI();
-          saveState();
-        }, 1000);
-      }
+    function endGame() {
+      document.querySelector('.container').style.display = 'none';
+      endScreen.style.display = 'flex';
     }
 
-    // Initialize game
-    loadState();
+    setInterval(() => {
+      state.score += state.pointsPerSecond;
+      updateUI();
+    }, 1000);
+
     updateUI();
   </script>
 </body>
