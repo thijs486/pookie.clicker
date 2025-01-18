@@ -98,8 +98,8 @@
     </div>
     <div class="upgrades">
       <div class="upgrade" id="upgradeClick">Upgrade Click (+5 points/click) - Cost: 10</div>
-      <div class="upgrade" id="upgradeDoublePoints">Double Points (Double your points) - Cost: 50</div>
-      <div class="upgrade" id="autoClickerUpgrade">Auto Clicker (+1 point/second) - Cost: 15</div>
+      <div class="upgrade" id="upgradeDoublePoints">Double Points (+0 points/click) - Cost: 50</div>
+      <div class="upgrade" id="autoClickerUpgrade">Auto Clicker (+5 point/second) - Cost: 15</div>
     </div>
   </div>
 
@@ -120,8 +120,8 @@
       maxScore: 1000000,
       upgrades: [
         { name: 'Click Upgrade', points: 5, cost: 10, increment: 20, isActive: false },
-        { name: 'Double Points', points: 0, cost: 50, increment: 20, isActive: false },
-        { name: 'Auto Clicker', points: 1, cost: 15, increment: 20, isActive: false }
+        { name: 'Double Points', points: 1, cost: 50, increment: 20, isActive: false },
+        { name: 'Auto Clicker', points: 5, cost: 15, increment: 20, isActive: false }
       ]
     };
 
@@ -173,6 +173,7 @@
       if (state.score >= upgrade.cost) {
         state.score -= upgrade.cost;
         state.doublePoints = true;
+        upgrade.cost += upgrade.increment;
         updateUI();
       } else {
         alert('Niet genoeg punten!');
@@ -194,6 +195,9 @@
     function endGame() {
       document.querySelector('.container').style.display = 'none';
       endScreen.style.display = 'flex';
+
+      const video = document.getElementById('endScreen').querySelector('video');
+      video.play();
     }
 
     setInterval(() => {
