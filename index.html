@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>POOKIE CLICKER</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      text-align: center;
+      margin: 0;
+      padding: 0;
+      background-color: #f0f0f0;
+    }
+    .container {
+      margin: 50px auto;
+      max-width: 700px;
+      padding: 20px;
+      background-color: white;
+      border-radius: 10px;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+    }
+    .score {
+      font-size: 2.5rem;
+      margin-bottom: 20px;
+    }
+    .image-container img {
+      width: 200px;
+      cursor: pointer;
+      transition: transform 0.2s;
+    }
+    .image-container img:hover {
+      transform: scale(1.1);
+    }
+    .upgrades {
+      margin-top: 30px;
+    }
+    .upgrade {
+      padding: 12px 24px;
+      margin: 10px;
+      background-color: #007BFF;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      transition: background-color 0.3s, transform 0.2s;
+    }
+    .upgrade:disabled {
+      background-color: #999;
+      cursor: not-allowed;
+    }
+    .upgrade:hover:enabled {
+      background-color: #0056b3;
+      transform: scale(1.05);
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="score">Score: <span id="score">0</span></div>
+    <div class="image-container">
+      <img id="clickableImage" src="https://media.licdn.com/dms/image/v2/D4E03AQE1uV_54TPG9w/profile-displayphoto-shrink_200_200/B4EZPWVo9nHsAY-/0/1734467818239?e=2147483647&v=beta&t=iT6B25M2vBs_mQUNhvI9Bn2BjFxgWlpk4-D2t3b9A-A" alt="Click Me">
+    </div>
+    <div class="upgrades">
+      <button id="upgradeClick" class="upgrade" disabled>Upgrade Click (Cost: 10)</button>
+      <button id="autoClicker" class="upgrade" disabled>Auto Clicker (Cost: 50)</button>
+      <button id="doublePoints" class="upgrade" disabled>Double Points (Cost: 100)</button>
+    </div>
+  </div>
+
+  <script>
+    // Game State
+    let state = {
+      score: 0,
+      pointsPerClick: 1,
+      pointsPerSecond: 0,
+      upgrades: {
+        upgradeClick: { cost: 10, purchased: false },
+        autoClicker: { cost: 50, purchased: false },
+        doublePoints: { cost: 100, purchased: false }
+      }
+    };
+
+    // DOM Elements
+    const scoreElement = document.getElementById('score');
+    const clickableImage = document.getElementById('clickableImage');
+    const upgradeClickButton = document.getElementById('upgradeClick');
+    const autoClickerButton = document.getElementById('autoClicker');
+    const doublePointsButton = document.getElementById('doublePoints');
+
+    // Load state from localStorage
+    function loadState() {
+      const savedState = JSON.parse(localStorage.getItem('gameState'));
+      if (savedState) {
+        state = savedState;
+        updateUI();
+        startAutoClicker();
+      }
+    }
+
+    // Save state to localStorage
+    function saveState() {
+      localStorage.setItem('gameState', JSON.stringify(state));
+    }
+
+    // Update UI
+    function updateUI() {
+      scoreElement.textContent = state.score;
+      upgradeClickButton.textContent = `Upgrade Click (Cost: ${state.upgrades.upgradeClick.cost})`;
+      autoClickerButton.textContent = `Auto Clicker (Cost: ${state.upgrades.autoClicker.cost})`;
+      doublePointsButton.textContent = `Double Points (Cost: ${state.upgrades.doublePoints.cost})`;
+
+      upgradeClickButton.disabled = state.score < state.upgrades.upgradeClick.cost;
+      autoClickerButton.disabled = state.score < state.upgrades.autoClicker.cost;
+      doublePointsButton.disabled = state.score < state.upgrades.doublePoints.cost;
+    }
+
+    // Handle clicking the image
+    clickableImage.addEventListener('click', () => {
+      state.score += state.pointsPerClick;
+      updateUI();
+      saveState();
+    });
+
+    // Handle upgrading click
+    upgradeClickButton.addEventListener('click', () => {
+      if (state.score >= state.upgrades.upgradeClick.cost) {
+        state.score -= state.upgrades.upgradeClick.cost;
+        state.pointsPerClick += 1;
+        state.upgrades.upgradeClick.cost = Math.ceil(state.upgrades.upgradeClick.cost * 1.5);
+        updateUI();
+        saveState();
+      }
+    });
+
+    // Handle auto clicker upgrade
+    autoClickerButton.addEventListener('click', () => {
+      if (state.score >= state.upgrades.autoClicker.cost) {
+        state.score -= state.upgrades.autoClicker.cost;
+        state.pointsPerSecond += 1;
+        state.upgrades.autoClicker.cost = Math.ceil(state.upgrades.autoClicker.cost * 2);
+        startAutoClicker();
+        updateUI();
+        saveState();
+      }
+    });
+
+    // Handle double points upgrade
+    doublePointsButton.addEventListener('click', () => {
+      if (state.score >= state.upgrades.doublePoints.cost) {
+        state.score -= state.upgrades.doublePoints.cost;
+        state.pointsPerClick *= 2;
+        state.upgrades.doublePoints.cost = Math.ceil(state.upgrades.doublePoints.cost * 2.5);
+        updateUI();
+        saveState();
+      }
+    });
+
+    // Auto clicker logic
+    function startAutoClicker() {
+      if (state.pointsPerSecond > 0) {
+        setInterval(() => {
+          state.score += state.pointsPerSecond;
+          updateUI();
+          saveState();
+        }, 1000);
+      }
+    }
+
+    // Initialize game
+    loadState();
+    updateUI();
+  </script>
+</body>
+</html>
